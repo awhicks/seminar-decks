@@ -4,13 +4,15 @@
 #
 # Starts both servers needed for the seminar setup:
 #
-#   1. Seminar server  (~/src/seminar, port 4433)
+#   1. Seminar server  (npm dep from github:rajgoel/seminar, port 4433)
 #   2. Deck server     (this repo, node server.js, port 8000)
 #
 # Lives at this repo's root and is shared by every course folder
 # (csc102, csc201, ...) — it discovers them automatically.
 #
 # Double-click this file in Finder, or run it from a terminal.
+# On first run it installs its own dependencies (reveal.js, the
+# plugins, and the seminar server itself), then starts everything.
 # Close this Terminal window (or press Ctrl-C) to stop servers
 # that this script started.
 #
@@ -20,6 +22,8 @@
 export PATH="$HOME/.local/share/mise/shims:$PATH"
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Optional dev override: a git clone of rajgoel/seminar. The
+# npm-installed copy (node_modules/seminar) is used otherwise.
 SEMINAR_DIR="$HOME/src/seminar"
 SEMINAR_PORT=4433
 DECK_PORT=8000
@@ -54,19 +58,38 @@ for dir in "$ROOT_DIR"/*/; do
 	fi
 done
 
+# --- First run: install dependencies --------------------------------------
+#
+# npm install pulls reveal.js, the plugins, and the seminar server
+# (github:rajgoel/seminar, pinned in package.json), and fills
+# vendor/ with the assets the decks reference.
+
+if [ ! -d "$ROOT_DIR/vendor" ] || [ ! -d "$ROOT_DIR/node_modules/seminar" ]; then
+	echo "First run — installing dependencies..."
+	(cd "$ROOT_DIR" && npm install) || exit 1
+	echo
+fi
+
 # --- Seminar server ------------------------------------------------------
+#
+# Uses the npm-installed copy (pinned in package.json). A git clone
+# at SEMINAR_DIR is a fallback for working on the seminar server
+# itself — the npm copy wins when both exist.
+
+if [ -f "$ROOT_DIR/node_modules/seminar/server.js" ]; then
+	SEMINAR_SRC="$ROOT_DIR/node_modules/seminar"
+elif [ -d "$SEMINAR_DIR" ]; then
+	SEMINAR_SRC="$SEMINAR_DIR"
+else
+	echo "✗ Seminar server not found — run npm install in $ROOT_DIR"
+	exit 1
+fi
 
 if port_listening "$SEMINAR_PORT"; then
 	echo "✓ Seminar server already running (port $SEMINAR_PORT)"
 else
-	if [ ! -d "$SEMINAR_DIR" ]; then
-		echo "✗ Seminar server not found at $SEMINAR_DIR"
-		echo "  Edit SEMINAR_DIR at the top of this script."
-		exit 1
-	fi
-
-	echo "Starting seminar server..."
-	(cd "$SEMINAR_DIR" && exec node server) &
+	echo "Starting seminar server (from $SEMINAR_SRC)..."
+	(cd "$SEMINAR_SRC" && exec node server) &
 	SEMINAR_PID=$!
 
 	if wait_for_port "$SEMINAR_PORT"; then

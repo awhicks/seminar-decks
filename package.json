@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "reveal.js": "6.0.2",
-    "reveal.js-plugins": "^4.6.0"
+    "reveal.js-plugins": "^4.6.0",
+    "seminar": "github:rajgoel/seminar#de02dbb"
   }
 }
