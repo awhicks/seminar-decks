@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>CSC 102 — Lecture</title>
+
+  <!-- The lecture number in the title is filled in from the
+       filename by the script at the bottom of this file. -->
+
+  <link rel="stylesheet"
+        href="../vendor/reveal.css">
+
+  <link rel="stylesheet"
+        href="../vendor/theme/black.css">
+
+  <link rel="stylesheet"
+        href="../vendor/plugins/chalkboard/style.css">
+
+  <link rel="stylesheet"
+        href="../vendor/plugins/customcontrols/style.css">
+</head>
+
+<body>
+
+<div class="reveal">
+  <div class="slides">
+
+    <!-- ============================================================
+         YOUR SLIDES
+
+         Each slide is a <section>. Put an
+         <aside class="notes"> inside a section to add speaker
+         notes (shown on the iPad presenter). Replace the two
+         example slides below with your lecture content — keep
+         everything outside this comment as is.
+         ============================================================ -->
+
+    <section>
+      <h1>CSC 102</h1>
+      <p>Lecture 2</p>
+
+      <aside class="notes">
+        Replace these example slides with your lecture content.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Topic</h2>
+
+      <p>Replace this slide.</p>
+
+      <aside class="notes">
+        Speaker notes appear on the iPad presenter.
+      </aside>
+    </section>
+
+  </div>
+</div>
+
+<script src="../vendor/reveal.js"></script>
+
+<!-- Font Awesome -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+<!-- Custom controls -->
+<script src="../vendor/plugins/customcontrols/plugin.js"></script>
+
+<!-- Chalkboard -->
+<script src="../vendor/plugins/chalkboard/plugin.js"></script>
+
+<!-- Seminar -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js"></script>
+<script src="../vendor/plugins/seminar/plugin.js"></script>
+
+<script>
+// Seminar room, derived from this file's name (lecture-01.html →
+// "CSC102-01"): copy this file to lecture-03.html and everything
+// -- title, room, venue -- follows automatically. Never edit by hand.
+const LECTURE_ROOM =
+    'CSC102-' + (location.pathname.match(/lecture-(\d+)/)?.[1] || '00');
+
+// Number the title to match the filename (purely cosmetic —
+// shows in the browser tab and the presenter's title bar).
+document.title = `CSC 102 — Lecture ${LECTURE_ROOM.slice(-2)}`;
+
+Reveal.initialize({
+
+    hash: true,
+
+    customcontrols: {
+        controls: [
+            {
+                icon: '<i class="fa fa-pen-square"></i>',
+                title: 'Toggle chalkboard (B)',
+                action: 'RevealChalkboard.toggleChalkboard();'
+            },
+            {
+                icon: '<i class="fa fa-pen"></i>',
+                title: 'Toggle notes canvas (C)',
+                action: 'RevealChalkboard.toggleNotesCanvas();'
+            }
+        ]
+    },
+
+    chalkboard: {
+        theme: "whiteboard"
+    },
+
+    seminar: {
+        // The seminar server runs on the same machine as this web
+        // server, so its address is derived from whatever hostname
+        // this page was opened with (localhost or the Mac's LAN IP)
+        // -- nothing to edit when the network address changes.
+        server: 'http://' + window.location.hostname + ':4433',
+
+        // Explicit venue so clients opening this deck via different
+        // hostnames (localhost vs LAN IP) share the same room.
+        url: LECTURE_ROOM,
+
+        room: LECTURE_ROOM,
+        hash: '$2a$05$XcC0yzOq22ETZ3pgFUY2eeptU26MYLzKyxEXIGSR6Qz85RfKpd6/S',
+        autoJoin: true
+    },
+
+    plugins: [
+        RevealChalkboard,
+        RevealCustomControls,
+        RevealSeminar
+    ]
+
+});
+
+</script>
+
+</body>
+</html>

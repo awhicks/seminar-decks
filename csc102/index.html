@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>CSC 102</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 24px;
+
+      background: #111;
+      color: white;
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Text",
+        "Helvetica Neue",
+        sans-serif;
+    }
+
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin: 0 0 8px;
+    }
+
+    p.hint {
+      margin: 0 0 32px;
+
+      color: #888;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    ul {
+      margin: 0;
+      padding: 0;
+
+      list-style: none;
+    }
+
+    li {
+      display: flex;
+      gap: 10px;
+
+      margin-bottom: 10px;
+    }
+
+    a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 16px 20px;
+
+      border: 1px solid #333;
+      border-radius: 12px;
+
+      background: #181818;
+
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    a.lecture {
+      flex: 1;
+    }
+
+    a.presenter-link {
+      flex: 0 0 auto;
+
+      color: #888;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    a.presenter-link:hover {
+      color: white;
+    }
+
+    a strong {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    a span {
+      color: #666;
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    a:hover {
+      border-color: #555;
+      background: #1e1e1e;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main>
+
+    <h1>CSC 102</h1>
+
+    <p class="hint">
+      One deck per lecture, listed automatically from the
+      <code>lecture-XX.html</code> files in this folder. Each row's
+      <strong>Presenter</strong> button opens the shared presenter
+      (<code>/presenter.html</code> at the server root) for that lecture.
+    </p>
+
+    <ul id="lecture-list">
+      <!-- Filled in by the script below: one entry per
+           lecture-XX.html file that exists. -->
+    </ul>
+
+  </main>
+
+  <script>
+    // Populate the lecture list by probing for lecture-XX.html
+    // files (up to 52 — call it a semester). The dev server
+    // answers 200 with a fallback page for missing files, so
+    // each probe GETs the file and checks for a line that only
+    // real lecture decks contain; the first miss ends the list.
+    (async () => {
+      const list = document.getElementById("lecture-list");
+
+      // Course folder this index page lives in (/csc102/ → "csc102"),
+      // so the presenter links work unchanged in a copied folder.
+      const folder = location.pathname
+        .replace(/\/[^/]*$/, "")
+        .replace(/^\//, "");
+
+      for (let n = 1; n <= 52; n++) {
+        const file = `lecture-${String(n).padStart(2, "0")}.html`;
+
+        const response = await fetch(file);
+
+        if (!response.ok) break;
+        const body = await response.text();
+        if (!body.includes("LECTURE_ROOM")) break;
+
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        const label = document.createElement("span");
+        const number = document.createElement("strong");
+        const presenter = document.createElement("a");
+
+        number.textContent = `Lecture ${n}`;
+        label.textContent = file;
+
+        link.className = "lecture";
+        link.href = file;
+        link.append(number, label);
+
+        presenter.className = "presenter-link";
+        presenter.href =
+          `/presenter.html?deck=/${folder}/${file}`;
+        presenter.textContent = "Presenter";
+
+        item.append(link, presenter);
+        list.append(item);
+      }
+
+      if (!list.children.length) {
+        const empty = document.createElement("li");
+        empty.textContent = "No lecture files found.";
+        list.append(empty);
+      }
+    })();
+  </script>
+
+</body>
+</html>

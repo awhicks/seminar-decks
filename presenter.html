@@ -1,0 +1,1904 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <title>Seminar Presenter</title>
+
+  <link
+    rel="stylesheet"
+    href="vendor/reveal.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="vendor/theme/black.css"
+  >
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+
+      background: #111;
+      color: white;
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Text",
+        "Helvetica Neue",
+        sans-serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+
+      background: #333;
+      color: white;
+
+      min-height: 52px;
+      padding: 0 22px;
+
+      font-size: 18px;
+
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active {
+      background: #555;
+      transform: scale(.98);
+    }
+
+    input {
+      width: 100%;
+
+      min-height: 52px;
+
+      padding: 0 16px;
+
+      border: 1px solid #444;
+      border-radius: 10px;
+
+      background: #222;
+      color: white;
+
+      font-size: 18px;
+    }
+
+    /* ============================================================
+       LOGIN
+       ============================================================ */
+
+    #login {
+      position: fixed;
+      inset: 0;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background: #111;
+
+      z-index: 1000;
+    }
+
+    #login-card {
+      width: min(420px, calc(100% - 32px));
+
+      padding: 28px;
+
+      border: 1px solid #333;
+      border-radius: 16px;
+
+      background: #181818;
+
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, .4);
+    }
+
+    #login-card h1 {
+      margin: 0 0 8px;
+
+      font-size: 26px;
+    }
+
+    #login-card p {
+      margin: 0 0 24px;
+
+      color: #999;
+      line-height: 1.5;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+
+      margin-bottom: 7px;
+
+      color: #aaa;
+
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    #login-button {
+      width: 100%;
+
+      margin-top: 8px;
+
+      background: #444;
+
+      font-weight: 600;
+    }
+
+    #login-status {
+      min-height: 24px;
+
+      margin-top: 14px;
+
+      color: #f88;
+
+      font-size: 14px;
+    }
+
+    #login-info {
+      margin-top: 10px;
+
+      color: #888;
+
+      font-size: 13px;
+      line-height: 1.5;
+
+      white-space: pre-line;
+    }
+
+    /* ============================================================
+       PRESENTER
+       ============================================================ */
+
+    /*
+       The presenter is always laid out (never display:none):
+       the deck iframe inside it must boot at a real panel size.
+       Before login the opaque #login overlay covers it, and
+       `inert` keeps its controls out of the tab order.
+       */
+
+    #presenter {
+      display: flex;
+
+      width: 100%;
+      height: 100%;
+
+      flex-direction: column;
+    }
+
+    header {
+      height: 52px;
+      flex: 0 0 52px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 0 16px;
+
+      border-bottom: 1px solid #333;
+
+      background: #181818;
+    }
+
+    #title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    #status {
+      color: #6c6;
+
+      font-size: 13px;
+    }
+
+    #timer {
+      margin-left: 16px;
+
+      color: #999;
+
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        monospace;
+    }
+
+    main {
+      flex: 1;
+
+      min-height: 0;
+
+      display: grid;
+
+      grid-template-columns:
+        minmax(0, 2fr)
+        minmax(260px, 1fr);
+
+      gap: 12px;
+
+      padding: 12px;
+    }
+
+    .panel {
+      min-width: 0;
+      min-height: 0;
+
+      overflow: hidden;
+
+      border: 1px solid #333;
+      border-radius: 12px;
+
+      background: #181818;
+    }
+
+    .panel-title {
+      height: 34px;
+
+      display: flex;
+      align-items: center;
+
+      padding: 0 12px;
+
+      border-bottom: 1px solid #333;
+
+      color: #999;
+
+      font-size: 12px;
+      font-weight: 700;
+
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .slide-preview {
+      position: relative;
+
+      width: 100%;
+      height: calc(100% - 34px);
+
+      overflow: hidden;
+
+      background: #000;
+    }
+
+    /*
+       The live deck fills the Current Slide panel. Reveal.js
+       scales itself to fit, exactly as in a browser window, and
+       the chalkboard canvas it contains is directly drawable.
+       */
+
+    #deck-frame {
+      position: absolute;
+      inset: 0;
+
+      width: 100%;
+      height: 100%;
+
+      border: 0;
+
+      background: #000;
+    }
+
+    .right {
+      min-width: 0;
+      min-height: 0;
+
+      display: grid;
+
+      grid-template-rows:
+        minmax(140px, 40%)
+        minmax(0, 60%);
+
+      gap: 12px;
+    }
+
+    #notes {
+      height: calc(100% - 34px);
+
+      padding: 16px;
+
+      overflow-y: auto;
+
+      white-space: pre-wrap;
+
+      color: #eee;
+
+      font-size: 18px;
+      line-height: 1.5;
+
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #chalk-controls {
+      flex: 0 0 auto;
+
+      display: grid;
+
+      grid-template-columns: repeat(4, 1fr);
+
+      gap: 12px;
+
+      padding: 0 12px;
+
+      background: #111;
+    }
+
+    #chalk-controls button {
+      font-size: 16px;
+    }
+
+    #controls {
+      flex: 0 0 auto;
+
+      display: grid;
+
+      grid-template-columns:
+        1fr
+        auto
+        1fr;
+
+      gap: 12px;
+
+      padding: 12px;
+
+      padding-bottom:
+        max(12px, env(safe-area-inset-bottom));
+
+      background: #111;
+    }
+
+    #controls button {
+      font-size: 30px;
+    }
+
+    #slide-number {
+      min-width: 100px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: #999;
+
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        monospace;
+
+      font-size: 15px;
+    }
+
+    /* ============================================================
+       PORTRAIT
+       ============================================================ */
+
+    @media (orientation: portrait) {
+
+      main {
+        grid-template-columns: 1fr;
+
+        grid-template-rows:
+          42%
+          58%;
+      }
+
+      .right {
+        grid-template-columns: 1fr 1fr;
+
+        grid-template-rows: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+
+      main {
+        gap: 8px;
+        padding: 8px;
+      }
+
+      .right {
+        gap: 8px;
+      }
+
+      #controls {
+        gap: 8px;
+        padding: 8px;
+      }
+
+      #notes {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+
+<body>
+
+  <!-- ==========================================================
+       HOST LOGIN
+       ========================================================== -->
+
+  <div id="login">
+
+    <div id="login-card">
+
+      <h1>Presenter</h1>
+
+      <p>
+        Sign in as a Seminar host to control the presentation.
+      </p>
+
+      <div class="field">
+
+        <label for="username">
+          Presenter name
+        </label>
+
+        <input
+          id="username"
+          type="text"
+          placeholder="Alex"
+          autocomplete="name"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label for="password">
+          Host password
+        </label>
+
+        <input
+          id="password"
+          type="password"
+          placeholder="Host password"
+          autocomplete="current-password"
+        >
+
+      </div>
+
+
+      <button id="login-button">
+        Start Presenter
+      </button>
+
+
+      <div id="login-info"></div>
+
+      <div id="login-status"></div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================================
+       PRESENTER UI
+       ========================================================== -->
+
+  <div
+    id="presenter"
+    inert
+  >
+
+    <header>
+
+      <div id="title">
+        Seminar Presenter
+      </div>
+
+      <div>
+
+        <span id="status">
+          Connected
+        </span>
+
+        <span id="timer">
+          00:00
+        </span>
+
+      </div>
+
+    </header>
+
+
+    <main>
+
+      <!-- CURRENT — the live deck itself (see #deck-frame below) -->
+
+      <section class="panel">
+
+        <div class="panel-title">
+          Current Slide
+        </div>
+
+        <div
+          id="current-preview"
+          class="slide-preview"
+        >
+
+          <!-- ========================================================
+               THE ACTUAL DECK runs here, filling the panel.
+
+               This iframe IS the seminar host: it loads the deck
+               and broadcasts its state. Showing it live (instead
+               of a cloned preview) also makes the chalkboard
+               drawable directly in the presenter view — every
+               stroke is recorded and broadcast by the plugin, so
+               participants see it.
+               ======================================================== -->
+
+          <iframe
+            id="deck-frame"
+            title="Reveal presentation"
+          ></iframe>
+
+        </div>
+
+      </section>
+
+
+      <!-- RIGHT -->
+
+      <div class="right">
+
+        <!-- NEXT -->
+
+        <section class="panel">
+
+          <div class="panel-title">
+            Next Slide
+          </div>
+
+          <div
+            id="next-preview"
+            class="slide-preview"
+          ></div>
+
+        </section>
+
+
+        <!-- NOTES -->
+
+        <section class="panel">
+
+          <div class="panel-title">
+            Speaker Notes
+          </div>
+
+          <div id="notes">
+            Loading...
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+
+
+    <!-- CHALKBOARD -->
+
+    <!--
+      Drawing controls for the chalkboard plugin running inside
+      the deck iframe. Everything drawn here is recorded and
+      broadcast by the plugin, so participants see it live.
+    -->
+
+    <div id="chalk-controls">
+
+      <button
+        id="notes-toggle"
+        aria-label="Toggle notes canvas (draw on slide)"
+      >
+        ✏️ Draw
+      </button>
+
+      <button
+        id="chalkboard-toggle"
+        aria-label="Toggle chalkboard"
+      >
+        ▦ Board
+      </button>
+
+      <button
+        id="color-cycle"
+        aria-label="Next pen color"
+      >
+        🎨
+      </button>
+
+      <button
+        id="clear-slide"
+        aria-label="Clear drawings on current slide"
+      >
+        ⌫ Clear
+      </button>
+
+    </div>
+
+
+    <!-- CONTROLS -->
+
+    <div id="controls">
+
+      <button
+        id="prev"
+        aria-label="Previous slide"
+      >
+        ◀
+      </button>
+
+      <div id="slide-number">
+        1 / 1
+      </div>
+
+      <button
+        id="next"
+        aria-label="Next slide"
+      >
+        ▶
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <script>
+
+    /*
+     * ============================================================
+     * SEMINAR
+     * ============================================================
+     *
+     * The Seminar plugin runs inside the deck iframe (index.html),
+     * where Reveal.initialize() configures it. We drive it through
+     * the iframe so the deck itself becomes the host and broadcasts
+     * its state to all participants.
+     *
+     * The server, room, and hash are configured in index.html.
+     */
+
+
+    /*
+     * ============================================================
+     * DOM
+     * ============================================================
+     */
+
+    const login =
+      document.getElementById("login");
+
+    const presenter =
+      document.getElementById("presenter");
+
+    const username =
+      document.getElementById("username");
+
+    const password =
+      document.getElementById("password");
+
+    const loginButton =
+      document.getElementById("login-button");
+
+    const loginStatus =
+      document.getElementById("login-status");
+
+    const loginInfo =
+      document.getElementById("login-info");
+
+    const headerTitle =
+      document.getElementById("title");
+
+    const status =
+      document.getElementById("status");
+
+    const deckFrame =
+      document.getElementById("deck-frame");
+
+    const nextPreview =
+      document.getElementById("next-preview");
+
+    const notes =
+      document.getElementById("notes");
+
+    const slideNumber =
+      document.getElementById("slide-number");
+
+    const prevButton =
+      document.getElementById("prev");
+
+    const nextButton =
+      document.getElementById("next");
+
+
+    /*
+     * ============================================================
+     * DECK
+     * ============================================================
+     *
+     * The presentation to control is loaded in the deck iframe,
+     * shown live in the Current Slide panel. This file lives at
+     * the server root and is shared by every course, so the deck
+     * must always be named with a ?deck=<path> parameter:
+     *
+     *   /presenter.html?deck=/csc102/lecture-01.html
+     */
+
+    const deckURL =
+      new URLSearchParams(
+        window.location.search
+      ).get("deck");
+
+
+    if (deckURL) {
+
+      deckFrame.src = deckURL;
+
+    } else {
+
+      loginStatus.textContent =
+        "No deck selected — add ?deck=/csc102/lecture-01.html (for example) to this page's URL.";
+
+      loginButton.disabled = true;
+      loginButton.style.opacity = "0.4";
+
+    }
+
+
+    /*
+     * ============================================================
+     * REVEAL
+     * ============================================================
+     */
+
+    let RevealDeck = null;
+
+
+    deckFrame.addEventListener(
+      "load",
+      () => {
+
+        RevealDeck =
+          deckFrame.contentWindow.Reveal;
+
+
+        if (!RevealDeck) {
+
+          console.error(
+            "Could not find Reveal in deck iframe."
+          );
+
+          return;
+        }
+
+
+        if (RevealDeck.isReady()) {
+
+          setupReveal();
+
+        } else {
+
+          RevealDeck.addEventListener(
+            "ready",
+            setupReveal,
+            { once: true }
+          );
+
+        }
+
+      }
+    );
+
+
+    function setupReveal() {
+
+      /*
+       * The deck now shares the Current Slide panel, which can be
+       * narrower than reveal.js' scroll activation width (435px).
+       * In scroll view next()/prev() only adjust scrollTop, which
+       * would silently disable ALL navigation -- so turn the
+       * responsive scroll view off. (The deck lays out and scales
+       * to the panel like any browser window.)
+       */
+
+      RevealDeck.configure({
+        scrollActivationWidth: 0
+      });
+
+
+      updateLoginInfo();
+
+      updatePresenter();
+
+
+      RevealDeck.addEventListener(
+        "slidechanged",
+        updatePresenter
+      );
+
+
+      RevealDeck.addEventListener(
+        "fragmentshown",
+        updatePresenter
+      );
+
+
+      RevealDeck.addEventListener(
+        "fragmenthidden",
+        updatePresenter
+      );
+
+
+      /*
+       * Track the Seminar connection status, which the plugin
+       * reports as "seminar" events on the deck's document.
+       */
+
+      deckFrame.contentDocument.addEventListener(
+        "seminar",
+        updateStatus
+      );
+
+    }
+
+
+    const SEMINAR_STATUS = {
+      1: "Checked in",
+      2: "Waiting for host",
+      3: "Joined",
+      4: "Hosting",
+      5: "Chairing"
+    };
+
+
+    function updateStatus(event) {
+
+      status.textContent =
+        SEMINAR_STATUS[event.status] ||
+        "Connecting...";
+
+    }
+
+
+    /*
+     * Show which deck and seminar room this presenter is wired
+     * to. Both are read from the deck itself, so this page never
+     * needs its own copy of the server, room, or hash values.
+     */
+
+    function updateLoginInfo() {
+
+      const deckDocument =
+        deckFrame.contentDocument;
+
+
+      const seminarConfig =
+        (RevealDeck.getConfig() || {})
+          .seminar || {};
+
+
+      if (
+        deckDocument &&
+        deckDocument.title
+      ) {
+
+        headerTitle.textContent =
+          deckDocument.title;
+
+      }
+
+
+      const lines = [];
+
+
+      lines.push(
+        `Deck: ${deckURL}`
+      );
+
+
+      if (seminarConfig.room) {
+
+        lines.push(
+          `Room: ${seminarConfig.room}`
+        );
+
+        lines.push(
+          `Server: ${seminarConfig.server || "not configured"}`
+        );
+
+      } else {
+
+        lines.push(
+          "This deck has no seminar configuration."
+        );
+
+      }
+
+
+      loginInfo.textContent =
+        lines.join("\n");
+
+    }
+
+
+    /*
+     * ============================================================
+     * HOST LOGIN
+     * ============================================================
+     */
+
+    /*
+     * Remember the presenter name and password (in this
+     * browser's localStorage) so repeat sessions on the iPad
+     * are one tap: Start Presenter.
+     *
+     * localStorage can throw (Safari private browsing), so
+     * every access is guarded — login just falls back to
+     * manual entry.
+     */
+
+    try {
+
+      username.value =
+        localStorage.getItem("presenter-name") || "";
+
+      password.value =
+        localStorage.getItem("presenter-password") || "";
+
+    } catch (error) {
+      /* private browsing or storage disabled */
+    }
+
+
+    if (username.value) {
+      password.focus();
+    } else {
+      username.focus();
+    }
+
+
+    function rememberCredentials(name, pass) {
+
+      try {
+
+        localStorage.setItem(
+          "presenter-name",
+          name
+        );
+
+        localStorage.setItem(
+          "presenter-password",
+          pass
+        );
+
+      } catch (error) {
+        /* private browsing or storage disabled */
+      }
+
+    }
+
+
+    loginButton.addEventListener(
+      "click",
+      startPresenter
+    );
+
+
+    password.addEventListener(
+      "keydown",
+      event => {
+
+        if (event.key === "Enter") {
+          startPresenter();
+        }
+
+      }
+    );
+
+
+    username.addEventListener(
+      "keydown",
+      event => {
+
+        if (event.key === "Enter") {
+          password.focus();
+        }
+
+      }
+    );
+
+
+    function startPresenter() {
+
+      const name =
+        username.value.trim();
+
+      const pass =
+        password.value;
+
+
+      if (!name) {
+
+        loginStatus.textContent =
+          "Enter your presenter name.";
+
+        username.focus();
+
+        return;
+      }
+
+
+      if (!pass) {
+
+        loginStatus.textContent =
+          "Enter the host password.";
+
+        password.focus();
+
+        return;
+      }
+
+
+      /*
+       * The Seminar plugin lives in the deck iframe. It only
+       * becomes usable there once Reveal.initialize() has run
+       * (the plugin attaches its internals to the iframe's
+       * window during init), so make sure the deck is ready.
+       */
+
+      const deckWindow =
+        deckFrame.contentWindow;
+
+
+      if (
+        !deckWindow ||
+        !deckWindow.Reveal ||
+        !deckWindow.Reveal.isReady()
+      ) {
+
+        loginStatus.textContent =
+          "The presentation is still loading. Try again in a moment.";
+
+        return;
+      }
+
+
+      const seminar =
+        deckWindow.RevealSeminar;
+
+
+      if (!seminar) {
+
+        loginStatus.textContent =
+          `No Seminar plugin in the deck "${deckURL}". Either that file does not exist (the dev server then serves the reveal.js demo page in its place) or the deck is missing the seminar setup — see the README in that course's folder.`;
+
+        return;
+      }
+
+
+      loginStatus.textContent =
+        "Connecting...";
+
+
+      /*
+       * Tell Seminar to open/join the room as a host.
+       *
+       * The password is the plaintext password.
+       * Seminar compares it against the configured bcrypt hash.
+       */
+
+      try {
+
+        seminar.open_or_join_room(
+          pass,
+          name
+        );
+
+        /*
+         * We show the presenter immediately.
+         * Seminar will establish the connection asynchronously.
+         */
+
+        login.style.display =
+          "none";
+
+        presenter.removeAttribute(
+          "inert"
+        );
+
+        rememberCredentials(
+          name,
+          pass
+        );
+
+
+        /*
+         * Focus may still be on a login input (e.g. the form was
+         * submitted with Enter). The keyboard handler ignores
+         * events originating from inputs, so arrows would be dead
+         * until the user clicked elsewhere. Drop focus now.
+         */
+
+        document.activeElement?.blur?.();
+
+
+        /*
+         * Refresh the next-slide preview and notes once the
+         * login overlay is gone.
+         */
+
+        requestAnimationFrame(
+          updatePresenter
+        );
+
+
+        status.textContent =
+          "Connecting...";
+
+      } catch (error) {
+
+        console.error(error);
+
+        loginStatus.textContent =
+          error.message ||
+          "Could not connect to Seminar.";
+
+      }
+
+    }
+
+
+    /*
+     * ============================================================
+     * NAVIGATION
+     * ============================================================
+     */
+
+    prevButton.addEventListener(
+      "click",
+      () => {
+
+        if (RevealDeck) {
+          RevealDeck.prev();
+        }
+
+      }
+    );
+
+
+    nextButton.addEventListener(
+      "click",
+      () => {
+
+        if (RevealDeck) {
+          RevealDeck.next();
+        }
+
+      }
+    );
+
+
+    /*
+     * ============================================================
+     * CHALKBOARD
+     * ============================================================
+     *
+     * The chalkboard plugin runs inside the deck iframe and
+     * broadcasts every stroke through Seminar, so participants
+     * see whatever is drawn here. These controls simply drive
+     * the plugin inside the deck.
+     *
+     * Note: when the deck iframe itself has focus (e.g. after
+     * drawing on it), the chalkboard's own keyboard bindings
+     * handle these keys inside the iframe -- events do not
+     * cross iframe boundaries, so nothing fires twice.
+     */
+
+    function withChalkboard(action) {
+
+      const chalkboard =
+        deckFrame.contentWindow &&
+        deckFrame.contentWindow.RevealChalkboard;
+
+      if (chalkboard) {
+        action(chalkboard);
+      }
+
+    }
+
+
+    document
+      .getElementById("notes-toggle")
+      .addEventListener(
+        "click",
+        () => withChalkboard(
+          chalkboard => chalkboard.toggleNotesCanvas()
+        )
+      );
+
+
+    document
+      .getElementById("chalkboard-toggle")
+      .addEventListener(
+        "click",
+        () => withChalkboard(
+          chalkboard => chalkboard.toggleChalkboard()
+        )
+      );
+
+
+    document
+      .getElementById("color-cycle")
+      .addEventListener(
+        "click",
+        () => withChalkboard(
+          chalkboard => chalkboard.colorNext()
+        )
+      );
+
+
+    document
+      .getElementById("clear-slide")
+      .addEventListener(
+        "click",
+        () => withChalkboard(
+          chalkboard => chalkboard.clear()
+        )
+      );
+
+
+    /*
+     * Keyboard navigation while testing on Mac. Shortcuts match
+     * the chalkboard plugin's own bindings (B/C/X/DEL).
+     */
+
+    document.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.target.tagName ===
+          "INPUT"
+        ) {
+          return;
+        }
+
+
+        if (event.key === "ArrowLeft") {
+
+          RevealDeck?.prev();
+
+        }
+
+
+        if (event.key === "ArrowRight") {
+
+          RevealDeck?.next();
+
+        }
+
+
+        if (event.key === "b" || event.key === "B") {
+
+          withChalkboard(
+            chalkboard => chalkboard.toggleChalkboard()
+          );
+
+        }
+
+
+        if (event.key === "c" || event.key === "C") {
+
+          withChalkboard(
+            chalkboard => chalkboard.toggleNotesCanvas()
+          );
+
+        }
+
+
+        if (event.key === "x" || event.key === "X") {
+
+          withChalkboard(
+            chalkboard => chalkboard.colorNext()
+          );
+
+        }
+
+
+        if (event.key === "Delete") {
+
+          withChalkboard(
+            chalkboard => chalkboard.clear()
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+     * ============================================================
+     * PRESENTER INFORMATION
+     * ============================================================
+     */
+
+    function updatePresenter() {
+
+      if (!RevealDeck) {
+        return;
+      }
+
+
+      const currentSlide =
+        RevealDeck.getCurrentSlide();
+
+
+      if (!currentSlide) {
+        return;
+      }
+
+
+      const indices =
+        RevealDeck.getIndices();
+
+
+      const total =
+        RevealDeck.getTotalSlides();
+
+
+      slideNumber.textContent =
+        `${indices.h + 1} / ${total}`;
+
+
+      /*
+       * Speaker notes
+       */
+
+      const note =
+        currentSlide.querySelector(
+          "aside.notes"
+        );
+
+
+      if (note) {
+
+        /*
+         * Plain text only: the #notes panel is styled with
+         * white-space: pre-wrap, so line breaks are preserved
+         * without injecting arbitrary HTML.
+         */
+
+        notes.textContent =
+          note.textContent;
+
+      } else {
+
+        notes.textContent =
+          "No speaker notes for this slide.";
+
+      }
+
+
+      /*
+       * The current slide is the live deck iframe in the Current
+       * Slide panel -- nothing to update for it.
+       *
+       * The next preview shows the upcoming slide as it will
+       * appear on arrival (no fragments shown yet), matching
+       * the behavior of the reveal.js speaker view.
+       */
+
+      updatePreview(
+        nextPreview,
+        getNextSlide(currentSlide),
+        -1
+      );
+
+    }
+
+
+    function getNextSlide(currentSlide) {
+
+      if (!currentSlide || !RevealDeck) {
+        return null;
+      }
+
+
+      /*
+       * Flattened document order handles horizontal decks and
+       * nested vertical slides alike.
+       */
+
+      const slides =
+        RevealDeck.getSlides();
+
+
+      const index =
+        slides.indexOf(currentSlide);
+
+
+      return index >= 0
+        ? slides[index + 1] || null
+        : null;
+
+    }
+
+
+    /*
+     * ============================================================
+     * SLIDE PREVIEW
+     * ============================================================
+     */
+
+    function updatePreview(
+      container,
+      slide,
+      fragment
+    ) {
+
+      const cached =
+        previewCache.get(container);
+
+
+      /*
+       * Same slide as before: sync the fragment position into
+       * the existing preview instead of reloading it.
+       */
+
+      if (
+        cached &&
+        cached.slide === slide
+      ) {
+
+        if (cached.iframe) {
+
+          syncPreviewFragments(
+            cached.iframe,
+            fragment
+          );
+
+        }
+
+        return;
+      }
+
+
+      createPreview(
+        container,
+        slide,
+        fragment
+      );
+
+    }
+
+
+    function createPreview(
+      container,
+      slide,
+      fragment
+    ) {
+
+      container.replaceChildren();
+
+
+      previewCache.set(container, {
+        slide,
+        iframe: null
+      });
+
+
+      if (!slide) {
+
+        const empty =
+          document.createElement("div");
+
+
+        empty.textContent =
+          "End of presentation";
+
+
+        empty.style.cssText = `
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          color: #777;
+          font-size: 16px;
+        `;
+
+
+        container.append(empty);
+
+        return;
+      }
+
+
+      const iframe =
+        document.createElement("iframe");
+
+
+      /*
+       * The iframe fills its panel and reveal.js scales the
+       * slide to fit (it lays out at the deck's configured
+       * slide size and centers itself, exactly like a deck in
+       * a normal browser window).
+       */
+
+      /*
+       * The previews are display-only. Making them non-focusable
+       * keeps keyboard events (arrow-key navigation) in this
+       * document -- a click on a preview would otherwise move
+       * focus into the iframe, where keys are not heard.
+       */
+
+      iframe.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+        pointer-events: none;
+      `;
+
+      iframe.tabIndex = -1;
+
+
+      container.append(iframe);
+
+
+      previewCache.set(container, {
+        slide,
+        iframe
+      });
+
+
+      /*
+       * Copy the slide without the runtime state reveal.js has
+       * applied to it in the deck (visibility flags, position
+       * classes, and already-shown fragments). The embedded
+       * copy applies its own state from the fragment index.
+       */
+
+      const clone =
+        slide.cloneNode(true);
+
+
+      clone.removeAttribute("hidden");
+      clone.removeAttribute("inert");
+      clone.removeAttribute("aria-hidden");
+
+      clone.classList.remove(
+        "present",
+        "past",
+        "future"
+      );
+
+
+      for (
+        const element of
+          clone.querySelectorAll(".fragment")
+      ) {
+
+        element.classList.remove(
+          "visible",
+          "current-fragment"
+        );
+
+      }
+
+
+      const revealCSS =
+        new URL(
+          "vendor/reveal.css",
+          window.location.href
+        ).href;
+
+
+      const themeCSS =
+        new URL(
+          "vendor/theme/black.css",
+          window.location.href
+        ).href;
+
+
+      const revealJS =
+        new URL(
+          "vendor/reveal.js",
+          window.location.href
+        ).href;
+
+
+      iframe.srcdoc = `
+
+<!doctype html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<link
+  rel="stylesheet"
+  href="${revealCSS}"
+>
+
+<link
+  rel="stylesheet"
+  href="${themeCSS}"
+>
+
+<style>
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+.reveal {
+  width: 100%;
+  height: 100%;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="reveal">
+
+  <div class="slides">
+
+    ${clone.outerHTML}
+
+  </div>
+
+</div>
+
+<script src="${revealJS}"><\/script>
+
+<script>
+
+Reveal.initialize({
+
+  embedded: true,
+
+  controls: false,
+
+  progress: false,
+
+  keyboard: false,
+
+  touch: false,
+
+  overview: false,
+
+  center: true,
+
+  transition: "none",
+
+  /*
+   * Panels narrower than the default activation width (435px)
+   * would boot the preview into scroll view, where slides render
+   * at a fraction of the panel size instead of scaling to fill
+   * it. Disable responsive scroll activation so previews always
+   * use the scaled layout.
+   */
+
+  scrollActivationWidth: 0
+
+});
+
+Reveal.addEventListener("ready", () => {
+
+  Reveal.slide(0, 0, ${fragment});
+
+});
+
+<\/script>
+
+</body>
+
+</html>
+      `;
+
+
+    }
+
+
+    /*
+     * One live preview per panel, keyed by its container, so
+     * slides are only rebuilt when they actually change.
+     */
+
+    const previewCache = new Map();
+
+
+    function syncPreviewFragments(
+      iframe,
+      fragment
+    ) {
+
+      const deck =
+        iframe.contentWindow &&
+        iframe.contentWindow.Reveal;
+
+
+      if (deck && deck.isReady()) {
+
+        deck.slide(0, 0, fragment);
+
+      }
+
+    }
+
+
+    /*
+     * ============================================================
+     * TIMER
+     * ============================================================
+     */
+
+    const startTime =
+      Date.now();
+
+
+    setInterval(
+      () => {
+
+        const elapsed =
+          Math.floor(
+            (Date.now() - startTime) /
+            1000
+          );
+
+
+        const minutes =
+          Math.floor(elapsed / 60);
+
+
+        const seconds =
+          elapsed % 60;
+
+
+        document.getElementById(
+          "timer"
+        ).textContent =
+          `${String(minutes).padStart(2, "0")}:` +
+          `${String(seconds).padStart(2, "0")}`;
+
+      },
+      1000
+    );
+
+
+    /*
+     * ============================================================
+     * SWIPE NAVIGATION
+     * ============================================================
+     */
+
+    let touchStartX = null;
+    let touchStartY = null;
+
+
+    document.addEventListener(
+      "touchstart",
+      event => {
+
+        if (event.touches.length !== 1) {
+          return;
+        }
+
+
+        touchStartX =
+          event.touches[0].clientX;
+
+
+        touchStartY =
+          event.touches[0].clientY;
+
+      },
+      { passive: true }
+    );
+
+
+    document.addEventListener(
+      "touchend",
+      event => {
+
+        if (touchStartX === null) {
+          return;
+        }
+
+
+        const deltaX =
+          event.changedTouches[0].clientX -
+          touchStartX;
+
+
+        const deltaY =
+          event.changedTouches[0].clientY -
+          touchStartY;
+
+
+        touchStartX = null;
+        touchStartY = null;
+
+
+        if (
+          Math.abs(deltaX) < 60 ||
+          Math.abs(deltaX) <
+            Math.abs(deltaY) * 1.5
+        ) {
+
+          return;
+
+        }
+
+
+        if (deltaX < 0) {
+
+          RevealDeck?.next();
+
+        } else {
+
+          RevealDeck?.prev();
+
+        }
+
+      },
+      { passive: true }
+    );
+
+  </script>
+
+</body>
+</html>
+
