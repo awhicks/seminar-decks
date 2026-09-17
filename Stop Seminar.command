@@ -5,7 +5,7 @@
 # Stops the servers started by Start Seminar.command:
 #
 #   1. Seminar server  (port 4433)
-#   2. Deck server     (vite, port 8000)
+#   2. Deck server     (node server.js, port 8000)
 #
 # Only processes listening on those two ports are touched —
 # anything else on this Mac is left alone. Servers that are

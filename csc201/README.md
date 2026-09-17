@@ -16,7 +16,7 @@ plugin: the presenter hosts the room, everyone else follows along.
 
 ## Running it
 
-Double-click **`Start Seminar.command`** (at the reveal.js repo root —
+Double-click **`Start Seminar.command`** (at the root of this repo —
 one launcher, shared by every course). It starts both
 servers (skipping any that are already running), prints the URLs for each
 course folder it finds, and keeps running in its Terminal window — close
@@ -33,8 +33,8 @@ What it starts:
 1. **Seminar server** — `node server` in `~/src/seminar` (edit
    `SEMINAR_DIR` at the top of the script if it lives elsewhere).
    Listens on port **4433** on this Mac.
-2. **Deck server** — `npm start` in the reveal.js repo root (vite).
-   Serves on **<http://localhost:8000>** (the port is set in `vite.config.ts`).
+2. **Deck server** — `npm start` in this repo (a dependency-free static server).
+   Serves on **<http://localhost:8000>** (the port is set in `server.js`).
 
 Then open:
 
@@ -122,5 +122,5 @@ course's deck from `?deck=`, and the launcher discovers course folders
 - Host the room from exactly **one** place — the presenter. All other
   viewers auto-join as participants. When the last host leaves, the room
   closes and participants are kicked out.
-- Open pages through the vite server (`http://...`), not `file://` — the
+- Open pages through the deck server (`http://...`), not `file://` — the
   seminar server address is derived from the page hostname.

@@ -5,6 +5,10 @@ designed for a trusted LAN (Mac + iPad on the same network). This plan
 covers what it would take to run it on a server exposed to a wider
 network / the internet.
 
+This setup lives in its own repository (`seminar-decks`) — reveal.js
+and the plugins are npm dependencies here, not a checkout of the
+reveal.js repo.
+
 ---
 
 ## 1. Current state (what a server would need to reproduce)
@@ -13,9 +17,10 @@ network / the internet.
 
 | Piece | What it is | Where it comes from |
 |---|---|---|
-| Deck server | vite **dev server** (`npm start -- --host`), port 8000 | reveal.js repo |
+| Deck server | dependency-free static server (`node server.js`), port 8000, binds all interfaces | this repo |
 | Seminar server | express + socket.io app (`node server`), port 4433 | **cloned from source**: `github.com/rajgoel/seminar` → `~/src/seminar` |
-| reveal.js-plugins | chalkboard / customcontrols / seminar client plugins | npm package `reveal.js-plugins@^4.6.0`, added to `package.json` |
+| reveal.js engine | `reveal.js@6.0.2` | npm dep, copied to `vendor/` by `scripts/vendor.js` on install |
+| reveal.js-plugins | chalkboard / customcontrols / seminar client plugins | npm dep `reveal.js-plugins@^4.6.0`, copied to `vendor/plugins/` on install |
 | socket.io client | loaded by decks from **CDN** (cdnjs, pinned 4.6.1) | must match server's socket.io 4.6.1 |
 | Font Awesome | loaded by decks from **CDN** | cdnjs 6.4.0 |
 | Courses | `csc102/`, `csc201/` folders (decks + index) | in-repo |
@@ -24,6 +29,10 @@ network / the internet.
 
 ### Install friction (the "notes")
 
+- **This repo**: `npm install` — pulls reveal.js + plugins from npm
+  and vendors them into `vendor/` (gitignored; decks reference
+  `../vendor/...`). First run of `Start Seminar.command` does this
+  automatically.
 - **Seminar server is not on npm.** It must be cloned:
   ```sh
   git clone https://github.com/rajgoel/seminar.git ~/src/seminar
@@ -31,19 +40,18 @@ network / the internet.
   ```
   `bcrypt` is a **native module** — needs build toolchain (or prebuilt
   binaries) on the host. This matters most inside Docker.
-- **reveal.js-plugins must be added as a dependency** of the reveal.js
-  repo (`npm install reveal.js-plugins`) because decks reference
-  `../node_modules/reveal.js-plugins/...` for plugin code and CSS.
 - Decks load socket.io and Font Awesome from CDNs — a server deployment
   (especially offline or firewalled classrooms) should **vendor these
-  locally**.
+  locally** (add to `scripts/vendor.js` and rewrite the two `<script>`
+  tags in the deck templates).
 - The seminar **server's** socket.io version must match the **client**
   version the decks load (4.6.1 today). Pin both.
 
 ### Current security posture (LAN-trust assumptions)
 
-1. **vite dev server in production** — no rate limiting, no security
-   headers, dev-oriented file serving. Not meant to be exposed.
+1. ~~vite dev server~~ **Resolved**: decks are now served by a plain,
+   dependency-free static server (`server.js`). It is still plain
+   HTTP with no rate limiting or security headers.
 2. **Plain HTTP** on both ports — password and session sniffable in
    transit.
 3. **No brute-force protection** on the host-password check.
@@ -62,17 +70,16 @@ network / the internet.
 
 ## 2. Hardening plan
 
-### H1 — Stop using the vite dev server
+### H1 — Stop using the vite dev server — **mostly done**
 
-- `npm run build` to produce `dist/`.
-- Serve statically: `dist/`, course folders, `presenter.html`, and the
-  plugin assets decks reference under
-  `node_modules/reveal.js-plugins/` (either expose that path or copy
-  `chalkboard/`, `customcontrols/`, `seminar/` plugin files into the
-  static tree at build time — copying is cleaner).
-- Vendor the socket.io client + Font Awesome locally so decks have no
-  CDN dependency.
-- Result: a plain static file server (Caddy/nginx) instead of vite.
+- ✅ This repo now serves decks from its own dependency-free static
+  server (`server.js`), with reveal.js + plugins vendored from npm
+  into `vendor/` at install time. No vite, no reveal.js checkout.
+- ☐ Vendor the socket.io client + Font Awesome locally so decks have
+  no CDN dependency (add to `scripts/vendor.js`, rewrite the two
+  `<script>` tags in the deck templates).
+- ☐ For the server deployment, either keep `server.js` (bind it to
+  localhost behind the proxy) or hand static serving to Caddy/nginx.
 
 ### H2 — TLS everywhere
 
@@ -139,13 +146,13 @@ port. No vite, no CDN, no host Node install.
 ### D1 — `Dockerfile` (multi-stage)
 
 ```dockerfile
-# ---- build: compile reveal.js dist + fetch plugin assets ----
+# ---- build: install deps + vendor reveal assets ----
 FROM node:20 AS build
 WORKDIR /repo
 COPY package*.json ./
-RUN npm ci                       # includes reveal.js-plugins
+RUN npm ci                       # reveal.js + reveal.js-plugins,
+                                 # postinstall fills vendor/
 COPY . .
-RUN npm run build                # → dist/
 
 # ---- runtime: static files + seminar server ----
 FROM node:20-slim AS runtime
@@ -155,14 +162,16 @@ WORKDIR /seminar
 RUN npm ci --omit=dev            # bcrypt: prebuilt binaries usually
                                  # available for node:20-slim; if not,
                                  # add build-essential+python3 here
+COPY --from=build /repo /decks   # courses, presenter.html, vendor/, server.js
 ```
 
 Notes:
 - `bcrypt`'s native build is the main image risk — verify prebuilds on
   the target platform, keep the build-tool fallback documented.
-- The static tree handed to Caddy: `dist/`, course folders,
-  `presenter.html`, vendored socket.io client + Font Awesome, and the
-  three plugin folders copied out of `node_modules/reveal.js-plugins/`.
+- The static tree handed to Caddy: course folders, `presenter.html`,
+  `vendor/` (reveal.js + plugins, already built by `npm ci`), and —
+  once H1's remaining item lands — vendored socket.io client + Font
+  Awesome.
 
 ### D2 — `docker-compose.yml`
 
